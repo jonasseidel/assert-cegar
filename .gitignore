@@ -1,0 +1,37 @@
+# Build directory
+/build/
+/bin/
+
+# Object files and compiled outputs
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+*.cmake
+
+# Visual Studio / IDE stuff (if ever used)
+.vscode/
+*.sln
+*.vcxproj*
+*.user
+*.opensdf
+*.ipch
+*.ncb
+*.suo
+
+# Mac / Linux system files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
