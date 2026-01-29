@@ -13,3 +13,7 @@ TODO
 - implement predicate abstraction and abstract interpretation
 - implement CEGAR loop
 - ...
+
+BUILD
+in ./build directory run "cmake --build ."
+ 
