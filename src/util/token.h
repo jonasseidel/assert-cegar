@@ -20,10 +20,11 @@ MINUS,
 MUL,
 };
 
+//Make this a template?
+template <typename T>
 struct Token {
-
 TokenType type;
-std::string_view value;
-
+T value;
+std::string_view lexeme;
 };
 
