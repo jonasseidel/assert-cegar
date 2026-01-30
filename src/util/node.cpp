@@ -1,5 +1,6 @@
 #include <vector>
 #include <memory>
+#include <optional>
 #include "token.h"
 
 class Node {
@@ -36,7 +37,7 @@ class IfStatement : public Statement{
 public:
     std::unique_ptr<BooleanExpression> guard;
     std::unique_ptr<Statement> thenStatement;
-    std::unique_ptr<Statement> elseStatement;
+   std::optional<std::unique_ptr<Statement>> elseStatement;
 };
 
 class WhileStatement :public Statement{
