@@ -2,6 +2,7 @@
 #include <string_view>
 
 enum class TokenType {
+// Keywords
 ASSERT,
 IF,
 THEN,
@@ -9,15 +10,39 @@ ELSE,
 WHILE,
 DO,
 END,
+
+// Types
 INT,
 
+// Literals
+CONSTANT,
+TRUE,
+FALSE,
 IDENTIFIER,
 
+// Arithmetic operators
 EQUALS,
-CONSTANT,
+
 PLUS,
 MINUS,
 MUL,
+
+// Relational operators
+EQEQ,
+NEQ,
+LT,
+GT,
+
+// Boolean operators
+AND,
+OR,
+NOT,
+
+// Delimiters
+LPAREN,
+RPAREN,
+
+EOF,
 };
 
 
