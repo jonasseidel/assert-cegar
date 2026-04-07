@@ -3,6 +3,7 @@
 #include "../util/token.h"
 
 
+
 class Lexer {
     std::string file;
     std::string::iterator curr;
@@ -12,8 +13,6 @@ class Lexer {
     Token nextToken();
 
 public:
-    Lexer(const std::string& input) : file(input), curr(file.begin()) {
-        
-    }
+    explicit Lexer(const std::string& input);
     std::vector<Token> tokenize();
 };
