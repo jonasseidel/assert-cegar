@@ -4,6 +4,7 @@
 
 class DFA {
     std::vector<std::vector<int>> transitionTable;
+    int currentState;
     std::vector<std::optional<Token>> acceptingStates;
 
     public:
@@ -12,7 +13,7 @@ class DFA {
     // The rest of the states are non-accepting.
 
     explicit DFA(std::vector<std::vector<int>> tt)
-        : transitionTable(std::move(transitionTable)) {};
+        : transitionTable(std::move(transitionTable)), currentState(0) {};
     
     //optionally, we can also pass in the accepting states as a separate vector
     // This also
@@ -24,5 +25,7 @@ class DFA {
     int step(char input);
 
     int solveWordProblem(std::string_view word);
+
+    void reset();
 
 };

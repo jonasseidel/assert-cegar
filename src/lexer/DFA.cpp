@@ -4,6 +4,7 @@
 
 class DFA {
     std::vector<std::vector<int>> transitionTable;
+    int currentState;
     std::vector<std::optional<Token>> acceptingStates;
 
     public:
@@ -16,10 +17,26 @@ class DFA {
     
     // Always require a vector where accepting states indices i correspond to tokens as[i]
     explicit DFA(std::vector<std::vector<int>> tt, std::vector<std::optional<Token>> as)
-        : transitionTable(std::move(tt)), acceptingStates(std::move(as)) {};
+        : transitionTable(std::move(tt)), acceptingStates(std::move(as)), currentState(0) {};
 
-    int step(char input);
+    int step(char input){
+        // Check if char is a valid input.
+        // TODO for now assume
+        int nextState = transitionTable[currentState][input];
+        currentState = nextState;
+        return nextState;
+    };
 
-    int solveWordProblem(std::string_view word);
+    void reset() {
+        currentState = 0;
+    }
+
+    int solveWordProblem(std::string_view word){
+        reset();
+        for (char c : word) {
+            step(c);
+        }
+        return currentState;
+    }
 
 };
