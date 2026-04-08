@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <vector>
 #include "../util/token.h"
@@ -13,6 +14,7 @@ class Lexer {
     Token nextToken();
 
 public:
-    explicit Lexer(const std::string& input);
+    explicit Lexer(const std::string& input)  : file(input), curr(file.begin()) {
+    };
     std::vector<Token> tokenize();
 };
