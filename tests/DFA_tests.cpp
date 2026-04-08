@@ -4,7 +4,9 @@
 #include <vector>
 #include <iostream>
 #include <unordered_map>
+#include "../src/util/token.h"
 #include "../src/lexer/DFA.h"
+#include "../src/lexer/language.h"
 
 static int failures = 0;
 
@@ -15,10 +17,10 @@ std::vector<std::vector<int>> tt = {
         {3, 3, 3},
     };
 
-std::vector<std::optional<Token>> as = {
-    Token{TokenType::IDENTIFIER, 0, "identifier"},
+std::vector<std::optional<TokenType>> as = {
+    TokenType::IDENTIFIER,
     std::nullopt,
-    Token{TokenType::WHILE, 0, "while"},
+    TokenType::WHILE,
     std::nullopt,
 };
 
@@ -44,38 +46,80 @@ void test_accepts_valid_input() {
     // Improve with testing the final DFA for the lexer and
     // generating many testcases from the regex of each token type.
 
-    DFA dfa(tt, as);
+    DFA<TokenType> dfa(tt, as);
     int state = dfa.solveWordProblem(wordToIndices("abaaabaaabc"));
-    assert(dfa.isAccepting() == true && dfa.getAcceptedToken(state).type == TokenType::WHILE); // identifier
+    assert(dfa.isAccepting() == true && dfa.getAcceptedValue(state) == TokenType::WHILE);
 
     dfa.reset();
     state = dfa.solveWordProblem(wordToIndices("aaaaaa"));
-    assert(dfa.isAccepting() == true && dfa.getAcceptedToken(state).type == TokenType::IDENTIFIER); // identifier
+    assert(dfa.isAccepting() == true && dfa.getAcceptedValue(state) == TokenType::IDENTIFIER);
     
+
+    DFA<TokenType> dfa_big = createLexerDFA();
+    state = dfa_big.solveWordProblem("while");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::WHILE);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("whilevariable");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::IDENTIFIER);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("ifvariable");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::IDENTIFIER);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("if");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::IF);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("23");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::CONSTANT);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("int");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::INT);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("true");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::TRUE);
+
     std::cout << "PASS test_accepts_valid_input\n";
 
 }
 
 void test_absorbing_state() {
     
-    DFA dfa(tt, as);
+    DFA<TokenType> dfa(tt, as);
     int state = dfa.solveWordProblem(wordToIndices("ac"));
     assert(dfa.isAccepting() == false && dfa.isAbsorbing() == true); // should be in the absorbing state
     assert(dfa.step(charToIndex['a']) == state);
     assert(dfa.step(charToIndex['b']) == state);
     assert(dfa.step(charToIndex['c']) == state);
+
+    DFA<TokenType> dfa_big = createLexerDFA();
+    state = dfa_big.solveWordProblem("22a");
+    assert(dfa_big.isAccepting() == false && dfa_big.isAbsorbing() == true); //should be in the absorbing state
+
      //should stay in the absorbing state
     std::cout << "PASS test_absorbing_state\n";
 }
 
 void test_rejects_invalid_input() {
-    DFA dfa(tt, as);
+    DFA<TokenType> dfa(tt, as);
     int state = dfa.solveWordProblem(wordToIndices("ab"));
     assert(dfa.isAccepting() == false);
 
     dfa.reset();
     state = dfa.solveWordProblem(wordToIndices("bbc"));
     assert(dfa.isAccepting() == false);
+
+    DFA<TokenType> dfa_big = createLexerDFA();
+    state = dfa_big.solveWordProblem("22while");
+    assert(dfa_big.isAccepting() == false);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("while;");
+    assert(dfa_big.isAccepting() == false);
 
     std::cout << "PASS test_rejects_invalid_input\n";
 }
