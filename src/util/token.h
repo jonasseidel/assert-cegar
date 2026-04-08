@@ -21,7 +21,7 @@ FALSE,
 IDENTIFIER,
 
 // Arithmetic operators
-EQUALS,
+EQ,
 
 PLUS,
 MINUS,
@@ -42,7 +42,7 @@ NOT,
 LPAREN,
 RPAREN,
 
-EOF,
+END_OF_FILE,
 };
 
 
