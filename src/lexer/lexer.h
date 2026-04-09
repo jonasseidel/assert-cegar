@@ -70,8 +70,22 @@ class Lexer {
 
         automata.reset(); // reset DFA for next token
         //TODO construct token with correct value...
-        std::cout << lexeme << std::endl;
-        return Token{recognizedType.value(), {}, lexeme};
+        //std::cout << lexeme << std::endl;
+
+        Token recognizedToken;
+        switch (recognizedType.value()){
+        case TokenType::IDENTIFIER:
+            recognizedToken = Token{TokenType::IDENTIFIER, lexeme, lexeme};
+            break;
+        case TokenType::CONSTANT:
+            recognizedToken = Token{TokenType::CONSTANT, std::stoi(lexeme), lexeme};
+            break;
+
+        default:
+            recognizedToken = Token{recognizedType.value(), {}, lexeme};
+            break;
+        }
+        return recognizedToken;
     };
 
 public:
