@@ -2,19 +2,37 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <ostream>
+#include <string>
 #include "token.h"
+
+inline const char* tokenTypeToString(TokenType t) {
+    switch (t) {
+        case TokenType::PLUS:  return "+";
+        case TokenType::MINUS: return "-";
+        case TokenType::MUL:   return "*";
+        case TokenType::EQEQ:  return "==";
+        case TokenType::NEQ:   return "!=";
+        case TokenType::LT:    return "<";
+        case TokenType::GT:    return ">";
+        case TokenType::AND:   return "and";
+        case TokenType::OR:    return "or";
+        case TokenType::NOT:   return "not";
+        default:               return "?";
+    }
+}
 
 class Node {
 public:
-    virtual ~Node() = default; //default constructur virtual so that at runtime the correct destructor is chosen
-    
+    virtual ~Node() = default;
+
     Node() = default;
-    //No copies, only moves
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
     Node(Node&&) = default;
     Node& operator=(Node&&) = default;
+
     virtual void print(std::ostream& os) const = 0;
 };
 
@@ -24,13 +42,12 @@ class Statement : public Node {
 class Expression : public Node {
 };
 
-class StatementBlock : public Statement{
+class StatementBlock : public Statement {
 public:
     std::vector<std::unique_ptr<Statement>> statements;
 
     void print(std::ostream& os) const override;
 };
-
 
 class ArithmeticExpression : public Expression {
 };
@@ -38,133 +55,134 @@ class ArithmeticExpression : public Expression {
 class BooleanExpression : public Expression {
 };
 
-class VariableExpression : public ArithmeticExpression{
+class VariableExpression : public ArithmeticExpression {
 public:
-    Token<std::string_view> token;
+    std::string name;
 
-    explicit VariableExpression(Token<std::string_view> identifier) : token(std::move(identifier)) {}
+    explicit VariableExpression(std::string name) : name(std::move(name)) {}
 
-    void print(std::ostream& os) const override;
-};
-
-class IntLiteralExpression : public ArithmeticExpression{
-public:
-    Token<int> token;
-
-    explicit IntLiteralExpression(Token<int> value) : token(std::move(value)) {}
-
-    void print(std::ostream& os) const override{
-    os << token.value;
+    void print(std::ostream& os) const override {
+        os << name;
     }
 };
 
-class BoolLiteralExpression : public BooleanExpression{
+class IntLiteralExpression : public ArithmeticExpression {
 public:
-    Token<bool> token;
+    int value;
 
-    explicit BoolLiteralExpression(Token<bool> value) : token(std::move(value)) {}
+    explicit IntLiteralExpression(int value) : value(value) {}
 
-    void print(std::ostream& os) const override{
-    os << (token.value ? "true":"false" );
-}
+    void print(std::ostream& os) const override {
+        os << value;
+    }
 };
 
-
-class BinaryArithmeticExpression: public ArithmeticExpression{
+class BoolLiteralExpression : public BooleanExpression {
 public:
-    Token<std::string_view> operation;
+    bool value;
+
+    explicit BoolLiteralExpression(bool value) : value(value) {}
+
+    void print(std::ostream& os) const override {
+        os << (value ? "true" : "false");
+    }
+};
+
+class BinaryArithmeticExpression : public ArithmeticExpression {
+public:
+    TokenType operation;
     std::unique_ptr<ArithmeticExpression> leftExpression;
     std::unique_ptr<ArithmeticExpression> rightExpression;
 
-    BinaryArithmeticExpression(Token<std::string_view> operation, 
+    BinaryArithmeticExpression(TokenType operation,
         std::unique_ptr<ArithmeticExpression> leftExpression,
-        std::unique_ptr<ArithmeticExpression> rightExpression) 
-        : operation(std::move(operation)), 
-        leftExpression(std::move(leftExpression)), 
-        rightExpression(std::move(rightExpression)) {}
+        std::unique_ptr<ArithmeticExpression> rightExpression)
+        : operation(operation),
+          leftExpression(std::move(leftExpression)),
+          rightExpression(std::move(rightExpression)) {}
 
-    void print(std::ostream& os) const override{
-    leftExpression->print(os);
-    os << operation.value;
-    rightExpression->print(os);
+    void print(std::ostream& os) const override {
+        leftExpression->print(os);
+        os << tokenTypeToString(operation);
+        rightExpression->print(os);
     }
 };
 
-class BinaryBooleanExpression: public BooleanExpression{
+class BinaryBooleanExpression : public BooleanExpression {
 public:
-    Token<std::string_view> operation;
+    TokenType operation;
     std::unique_ptr<BooleanExpression> leftExpression;
     std::unique_ptr<BooleanExpression> rightExpression;
-    BinaryBooleanExpression(Token<std::string_view> operation, 
-        std::unique_ptr<BooleanExpression> leftExpression,
-        std::unique_ptr<BooleanExpression> rightExpression) 
-        : operation(std::move(operation)), 
-        leftExpression(std::move(leftExpression)), 
-        rightExpression(std::move(rightExpression)) {}
 
-    void print(std::ostream& os) const override{
-    leftExpression->print(os);
-    os << operation.value;
-    rightExpression->print(os);
+    BinaryBooleanExpression(TokenType operation,
+        std::unique_ptr<BooleanExpression> leftExpression,
+        std::unique_ptr<BooleanExpression> rightExpression)
+        : operation(operation),
+          leftExpression(std::move(leftExpression)),
+          rightExpression(std::move(rightExpression)) {}
+
+    void print(std::ostream& os) const override {
+        leftExpression->print(os);
+        os << tokenTypeToString(operation);
+        rightExpression->print(os);
     }
 };
 
-class BinaryRelationalExpression: public BooleanExpression{
+class BinaryRelationalExpression : public BooleanExpression {
 public:
-    Token<std::string_view> operation;
+    TokenType operation;
     std::unique_ptr<ArithmeticExpression> leftExpression;
     std::unique_ptr<ArithmeticExpression> rightExpression;
-    BinaryRelationalExpression(Token<std::string_view> operation, 
-        std::unique_ptr<ArithmeticExpression> leftExpression,
-        std::unique_ptr<ArithmeticExpression> rightExpression) 
-        : operation(std::move(operation)), 
-        leftExpression(std::move(leftExpression)), 
-        rightExpression(std::move(rightExpression)) {}
 
-    void print(std::ostream& os) const override{
-    leftExpression->print(os);
-    os << operation.value;
-    rightExpression->print(os);
+    BinaryRelationalExpression(TokenType operation,
+        std::unique_ptr<ArithmeticExpression> leftExpression,
+        std::unique_ptr<ArithmeticExpression> rightExpression)
+        : operation(operation),
+          leftExpression(std::move(leftExpression)),
+          rightExpression(std::move(rightExpression)) {}
+
+    void print(std::ostream& os) const override {
+        leftExpression->print(os);
+        os << tokenTypeToString(operation);
+        rightExpression->print(os);
     }
 };
 
 class AssertionStatement : public Statement {
 public:
-    //For now only boolean expressions. Later add more general predicates
     std::unique_ptr<BooleanExpression> assertion;
 
-    void print(std::ostream& os) const override{
-    os << "assertion: ";
-    assertion->print(os);
-    os << std::endl;
+    void print(std::ostream& os) const override {
+        os << "assertion: ";
+        assertion->print(os);
+        os << std::endl;
     }
 };
 
-class AssignStatement : public Statement{
+class AssignStatement : public Statement {
 public:
-    Token<std::string_view> target;
+    std::string target;
     std::unique_ptr<ArithmeticExpression> expression;
 
-    void print(std::ostream& os) const override{
-    os << target.value;
-    os << " = ";
-    expression->print(os);
-    os << std::endl;
+    void print(std::ostream& os) const override {
+        os << target << " = ";
+        expression->print(os);
+        os << std::endl;
     }
 };
 
-class IfStatement : public Statement{
+class IfStatement : public Statement {
 public:
     std::unique_ptr<BooleanExpression> guard;
     std::unique_ptr<Statement> thenStatement;
     std::optional<std::unique_ptr<Statement>> elseStatement;
 
-    void print(std::ostream& os) const override{
+    void print(std::ostream& os) const override {
         os << "if ";
         guard->print(os);
         os << " then ";
         thenStatement->print(os);
-        if(elseStatement.has_value()){
+        if (elseStatement.has_value()) {
             os << " else ";
             (*elseStatement)->print(os);
         }
@@ -172,17 +190,16 @@ public:
     }
 };
 
-class WhileStatement :public Statement{
+class WhileStatement : public Statement {
 public:
     std::unique_ptr<BooleanExpression> guard;
     std::unique_ptr<Statement> bodyStatement;
 
-    void print(std::ostream& os) const override{
+    void print(std::ostream& os) const override {
         os << "while ";
         guard->print(os);
         os << " do ";
         bodyStatement->print(os);
         os << std::endl;
     }
-
 };
