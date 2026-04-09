@@ -2,16 +2,17 @@
 #include <vector>
 #include <optional>
 #include <stdexcept>
-#include "../util/token.h"
+#include <string>
 
+template<typename T>
 class DFA {
     std::vector<std::vector<int>> transitionTable;
     int currentState;
-    std::vector<std::optional<Token>> acceptingStates;
+    std::vector<std::optional<T>> acceptingStates;
 
     public:
 
-    explicit DFA(std::vector<std::vector<int>> tt, std::vector<std::optional<Token>> as)
+    explicit DFA(std::vector<std::vector<int>> tt, std::vector<std::optional<T>> as)
         : transitionTable(std::move(tt)), acceptingStates(std::move(as)), currentState(0) {};
 
     int step(char input) {
@@ -50,11 +51,15 @@ class DFA {
         return true;
     }
 
-    Token getAcceptedToken(int state) {
+    T getAcceptedValue(int state) {
         if (isAcceptingState(state)) {
             return acceptingStates[state].value();
         } else {
             throw std::runtime_error("State " + std::to_string(state) + " is not an accepting state.");
         }
+    }
+
+    int getCurrentState() {
+        return currentState;
     }
 };

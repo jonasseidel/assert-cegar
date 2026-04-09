@@ -80,6 +80,10 @@ void test_accepts_valid_input() {
     assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::INT);
 
     dfa_big.reset();
+    state = dfa_big.solveWordProblem("=");
+    assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::EQ);
+
+    dfa_big.reset();
     state = dfa_big.solveWordProblem("true");
     assert(dfa_big.isAccepting() == true && dfa_big.getAcceptedValue(state) == TokenType::TRUE);
 
@@ -115,11 +119,15 @@ void test_rejects_invalid_input() {
 
     DFA<TokenType> dfa_big = createLexerDFA();
     state = dfa_big.solveWordProblem("22while");
-    assert(dfa_big.isAccepting() == false);
+    assert(dfa_big.isAccepting() == false && dfa_big.isAbsorbing() == true);
 
     dfa_big.reset();
     state = dfa_big.solveWordProblem("while;");
-    assert(dfa_big.isAccepting() == false);
+    assert(dfa_big.isAccepting() == false && dfa_big.isAbsorbing() == true);
+
+    dfa_big.reset();
+    state = dfa_big.solveWordProblem("while(");
+    assert(dfa_big.isAccepting() == false && dfa_big.isAbsorbing() == true); // should be in the absorbing state
 
     std::cout << "PASS test_rejects_invalid_input\n";
 }
