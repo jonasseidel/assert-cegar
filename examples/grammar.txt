@@ -1,0 +1,361 @@
+Program := Block eof                                                                                                                                                                                       
+
+Block := S | S Block
+
+S := int x
+     | x = AExp
+     | assert BExp
+     | if BExp then Block end
+     | if BExp then Block else Block end
+     | while BExp do Block end
+
+AExp := AExp + AExp
+        | AExp * AExp
+        | AExp - AExp
+        | ( AExp )
+        | x
+        | const
+
+BExp := BExp and BExp
+        | BExp or BExp
+        | not BExp
+        | ( BExp )
+        | AExp < AExp
+        | AExp > AExp
+        | AExp == AExp
+        | AExp != AExp
+        | true
+        | false
+
+LRO sets
+
+() = [Prog -> . Block eof]  [Block -> . S BLock ] [Block -> . S] 
+	[S -> . int x]  [S -> . x = AExp] [S -> . assert BExp ] [S -> . if BExp then Block end] 
+	[S -> . if BEXP then Block else Block end] [S -> . while BExp do Block end]
+
+(Block) = [Prog -> Block . eof]
+
+(Block eof) = [Prog -> Block eof .]
+
+(S) = 	[Block -> S .]  							<-------------------------------------------------   Conflict (reduuce if next is in {else, end, eof})
+	[Block -> S . Block ]  [Block -> . S BLock ] [Block -> . S]
+	[S -> . int x]  [S -> . x = AExp] [S -> . assert BExp ] [S -> . if BExp then Block end] 
+	[S -> . if BEXP then Block else Block end] [S -> . while BExp do Block end]
+
+(S Block) = [Block -> S Block .]
+
+(int) = [S-> int . x]
+
+(int x) = [S-> int x .]
+
+(x) = [S-> x. = AExp]
+(x = ) = 	[S-> x=.AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(x = AExp) = [S-> x = AExp .]								<-------------------------------------------------   Conflict (dont recuce if next is operator)
+	     [AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+
+(x = AExp +) = [AExp -> AExp  + . AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(x = AExp + x) = (assert x)
+(x = AExp + const) = (assert const)
+(x = AExp + "(" ) = (x = "(" )
+(x = AExp + AExp) = [AExp -> AExp  + AExp .]                                                     <-------------------------------------------------   Conflict (shift if next is *)
+	 	    [AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(x = AExp + AExp +) = (x = AExp +)
+(x = AExp + AExp -) = (x = AExp -)
+(x = AExp + AExp *) = (x = AExp *)
+
+(x = AExp -) = [AExp -> AExp - . AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(x = AExp - x) = (assert x)
+(x = AExp - const) = (assert const)
+(x = AExp - "(" ) = (x = "(" )
+(x = AExp - AExp) = [AExp -> AExp  - AExp .]                                                      <-------------------------------------------------  Conflict (shift if next is *)
+	 	    [AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(x = AExp - AExp +) = (x = AExp +)
+(x = AExp - AExp -) = (x = AExp -)
+(x = AExp - AExp *) = (x = AExp *)
+
+(x = AExp *) = [AExp -> AExp * . AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(x = AExp * x) = (assert x)
+(x = AExp * const) = (assert const)
+(x = AExp * "(" ) = (x = "(" )
+(x = AExp * AExp) = [AExp -> AExp  * AExp .]                                                       <------------------------------------------------- Conflict (reduce, * over +)
+	 	    [AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(x = AExp * AExp +) = (x = AExp +)
+(x = AExp * AExp -) = (x = AExp -)
+(x = AExp * AExp *) = (x = AExp *)
+
+(x = x) = (assert x)
+(x = const) = (assert const)
+(x = "(" ) = 	[AExp -> ( . AExp ) ]
+	     	[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(x = "((" ) = (x = "(" )
+(x = "(" x) = (assert x)
+(x = "(" const) = (assert const)
+
+(x = "(" AExp ) = [AExp -> ( AExp . ) ]
+		  [AExp -> AExp. + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(x = "(" AExp +) = (x = AExp +)
+(x = "(" AExp -) = (x = AExp -)
+(x = "(" AExp *) = (x = AExp *)
+(x = "(" AExp ")" ) = [AExp -> ( AExp ) .]
+
+
+
+------------------------------------------------------------------
+
+		
+
+(assert) = 	[S -> assert . BExp ] 
+		[BExp -> . BExp and BExp] [BExp -> . BExp or BExp] [BExp -> . not BExp] [BExp -> . ( BExp ) ] [BExp -> . true ] [BExp -> . false]
+		[BExp -> . AExp < AExp] [BExp -> .AExp > AExp] [BExp -> .AExp == AExp] [BExp -> . AExp != AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(assert true) = [BExp -> true .]
+
+(assert false) = [BExp -> false .]
+
+(assert x) = [AExp -> x .]
+
+(assert const) = [AExp -> const .]
+
+(assert "(" ) = [BExp ->  ( . BExp ) ] [AExp -> ( . AExp )]
+		[BExp -> . BExp and BExp] [BExp -> . BExp or BExp] [BExp -> . not BExp] [BExp -> . ( BExp ) ] [BExp -> . true ] [BExp -> . false]
+		[BExp -> . AExp < AExp] [BExp -> .AExp > AExp] [BExp -> .AExp == AExp] [BExp -> . AExp != AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(assert "((" ) = (assert "(" )
+
+(assert "(" BExp) = 	[BExp ->  ( BExp . ) ] [BExp -> BExp . and BExp] [BExp -> BExp . or BExp]
+
+(assert "(" BExp and ) =  (assert BExp and )
+
+(assert "(" BExp or ) =   (assert BExp or )
+
+(assert "(" BExp ")") = [BExp ->  ( BExp ) .]
+
+(assert "(" AExp) = 	[AExp -> ( AExp . )] 
+			[BExp -> AExp . < AExp] [BExp -> AExp . > AExp] [BExp -> AExp . == AExp] [BExp -> AExp . != AExp]
+			[AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+
+(assert "(" AExp < ) =  (assert AExp < )
+(assert "(" AExp > ) =  (assert AExp > )
+(assert "(" AExp == ) =  (assert AExp == )
+(assert "(" AExp != ) =  (assert AExp != )
+(assert "(" AExp + ) =  (x = AExp +)
+(assert "(" AExp - ) =  (x = AExp -)
+(assert "(" AExp * ) =  (x = AExp *)
+
+(assert "(" AExp ")") = (x = "(" AExp ")" )
+
+(assert "(" not ) =  (assert not)
+
+
+
+(assert BExp) = [S -> assert BExp .] [BExp -> BExp . and BExp] [BExp -> BExp . or BExp]   <-------------------------------------------------   Conflict(dont reduce if next is and/or)
+
+(assert BExp and ) = 	[BExp -> BExp and . BExp]
+			[BExp -> . BExp and BExp] [BExp -> . BExp or BExp] [BExp -> . not BExp] [BExp -> . ( BExp ) ] [BExp -> . true ] [BExp -> . false]
+			[BExp -> . AExp < AExp] [BExp -> .AExp > AExp] [BExp -> .AExp == AExp] [BExp -> . AExp != AExp]
+			[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(assert  BExp and not ) = (assert not)
+(assert  BExp and "(" ) = (assert "(" )
+(assert  BExp and true ) = (assert true)
+(assert  BExp and false ) = (assert false)
+(assert  BExp and x ) = (assert x)
+(assert  BExp and const ) = (assert const)
+(assert  BExp and BExp ) = [BExp -> BExp and BExp .] [BExp -> BExp . and BExp] [BExp -> BExp . or BExp] <---------------------------------------   Conflict (reduce, or over and)
+(assert  BExp and BExp and) = (assert BExp and)
+(assert  BExp and BExp or) = (assert BExp or)
+(assert  BExp and AExp) = (assert AExp)
+
+(assert BExp or ) = 	[BExp -> BExp or . BExp]
+		    	[BExp -> . BExp and BExp] [BExp -> . BExp or BExp] [BExp -> . not BExp] [BExp -> . ( BExp ) ] [BExp -> . true ] [BExp -> . false]
+			[BExp -> . AExp < AExp] [BExp -> .AExp > AExp] [BExp -> .AExp == AExp] [BExp -> . AExp != AExp]
+			[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(assert BExp or not ) = (assert not)
+(assert  BExp or "(" ) = (assert "(" )
+(assert  BExp or true ) = (assert true)
+(assert  BExp or false ) = (assert false)
+(assert  BExp or x ) = (assert x)
+(assert  BExp or const ) = (assert const)
+(assert  BExp or BExp ) = [BExp -> BExp or BExp .] [BExp -> BExp . and BExp] [BExp -> BExp . or BExp]	<-------------------------------------   Conflict(shift if next is or)
+(assert  BExp or BExp and) = (assert BExp and)
+(assert  BExp or BExp or) = (assert BExp or)
+(assert  BExp or AExp) = (assert AExp)
+
+
+(assert AExp) = [BExp -> AExp . < AExp] [BExp -> AExp . > AExp] [BExp -> AExp . == AExp] [BExp -> AExp . != AExp]
+		[AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+
+(assert AExp < ) =  [BExp -> AExp < . AExp]
+		    [AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+
+(assert AExp < "(" ) = 	(x = "(")
+(assert AExp < x) = (assert x)
+(assert AExp < const) = (assert const)
+(assert AExp < AExp) =  [BExp -> AExp < AExp .]								<-------------------------------------------------   Conflict(shift if +/-/*)
+			[AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(assert AExp < AExp + ) = (x = AExp +) 
+(assert AExp < AExp - ) = (x = AExp -)
+(assert AExp < AExp * ) = (x = AExp *)
+
+
+(assert AExp > ) =  [BExp -> AExp > . AExp]
+		    [AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+(assert AExp > "(" ) = 	(x = "(")
+(assert AExp > x) = (assert x)
+(assert AExp > const) = (assert const)
+(assert AExp > AExp) =  [BExp -> AExp > AExp .]								<-------------------------------------------------   Conflict(shift if +/-/*)
+			[AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(assert AExp > AExp + ) = (x = AExp +) 
+(assert AExp > AExp - ) = (x = AExp -)
+(assert AExp > AExp * ) = (x = AExp *)
+
+
+
+(assert AExp == ) =  [BExp -> AExp == . AExp]
+		    [AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+(assert AExp == "(" ) = (x = "(")
+(assert AExp == x) = (assert x)
+(assert AExp == const) = (assert const)
+(assert AExp == AExp) =  [BExp -> AExp == AExp .]							<-------------------------------------------------   Conflict(shift if +/-/*)
+			[AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(assert AExp == AExp + ) = (x = AExp +) 
+(assert AExp == AExp - ) = (x = AExp -)
+(assert AExp == AExp * ) = (x = AExp *)
+
+(assert AExp != ) =  [BExp -> AExp != . AExp]
+		    [AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp ) ] [AExp -> . x] [AExp -> . const]
+(assert AExp != "(" ) = (x = "(")
+(assert AExp != x) = (assert x)
+(assert AExp != const) = (assert const)
+(assert AExp != AExp) =  [BExp -> AExp != AExp .]							<-------------------------------------------------   Conflict(shift if +/-/*)
+			[AExp -> AExp . + AExp] [AExp -> AExp . - AExp] [AExp -> AExp . * AExp]
+(assert AExp != AExp + ) = (x = AExp +) 
+(assert AExp != AExp - ) = (x = AExp -)
+(assert AExp != AExp * ) = (x = AExp *)
+
+(assert AExp + ) =  (x = AExp +)
+
+(assert AExp - ) =  (x = AExp -)
+
+(assert AExp * ) =  (x = AExp *)
+
+------------------
+(assert not) =  [BExp -> not . BExp]
+		[BExp -> . BExp and BExp] [BExp -> . BExp or BExp] [BExp -> . not BExp] [BExp -> . ( BExp ) ] [BExp -> . true ] [BExp -> . false]
+		[BExp -> . AExp < AExp] [BExp -> .AExp > AExp] [BExp -> .AExp == AExp] [BExp -> . AExp != AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp )] [AExp -> . x] [AExp -> . const]
+
+(assert not BExp) = [BExp -> not BExp .] [BExp -> BExp . and BExp] [BExp -> BExp . or BExp] 		<-------------------------------------------------   Conflict(reduce!!)
+(assert not BExp and) = (assert BExp and )
+(assert not BExp or) = (assert BExp or )
+
+(assert not AExp) = (assert AExp)
+
+(assert not "(") = (assert "(")
+
+(assert not not) = (assert not)
+
+(assert not true) = (assert true)
+
+(assert not false) = (assert false)
+
+ ----------------------------------------------------------
+
+
+(if) = 		[S -> if . BExp then Block end]  [S -> if . BExp then Block else Block end] 
+		[BExp -> . BExp and BExp] [BExp -> . BExp or BExp] [BExp -> . not BExp] [BExp -> . ( BExp ) ] [BExp -> . true ] [BExp -> . false]
+		[BExp -> . AExp < AExp] [BExp -> .AExp > AExp] [BExp -> .AExp == AExp] [BExp -> . AExp != AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp )] [AExp -> . x] [AExp -> . const]
+
+(if BExp) = [S -> if BExp . then Block end]  [S -> if BExp . then Block else Block end]
+	    [BExp -> BExp . and BExp] [BExp -> BExp . or BExp]
+(if BExp and) = (assert BExp and )
+(if BExp or) = (assert BExp or)
+
+(if BExp then) = [S -> if BExp then . Block end]  [S -> if BExp then . Block else Block end]
+		 [Block -> . S Block ] [Block -> . S]
+		 [S -> . int x]  [S -> . x = AExp] [S -> . assert BExp ] [S -> . if BExp then Block end] 
+		 [S -> . if BEXP then Block else Block end] [S -> . while BExp do Block end]
+
+(if BExp then S) = (S)
+(if BExp then int) = (int)
+(if BExp then x) = (x)
+(if BExp then assert) = (assert)
+(if BExp then if) = (if)
+(if BExp then while) = (while)
+(if BExp then Block) = [S -> if BExp then Block .end]  [S -> if BExp then Block . else Block end]
+(if BExp then Block end) = [S -> if BExp then Block end .] 
+(if BExp then Block else) = [S -> if BExp then Block else . Block end]
+			    [Block -> . S Block ] [Block -> . S]
+		 	    [S -> . int x]  [S -> . x = AExp] [S -> . assert BExp ] [S -> . if BExp then Block end] 
+		 	    [S -> . if BEXP then Block else Block end] [S -> . while BExp do Block end]
+(if BExp then Block else S) = (S)
+(if BExp then Block else int) = (int)
+(if BExp then Block else x) = (x)
+(if BExp then Block else assert) = (assert)
+(if BExp then Block else if) = (if)
+(if BExp then Block else while) = (while)
+(if BExp then Block else Block) = [S -> if BExp then Block else Block . end]
+(if BExp then Block else Block end) = [S -> if BExp then Block else Block end .]
+
+
+(if AExp) = (assert AExp)
+
+(if "(") = (assert "(" )
+(if not) = (assert not )
+(if true) = (assert true )
+(if false) = (assert false )
+(if x) = (assert x)
+(if const) = (assert const)
+
+---------------
+
+
+(while) = 	[S ->  while . BExp do Block end] 
+		[BExp -> . BExp and BExp] [BExp -> . BExp or BExp] [BExp -> . not BExp] [BExp -> . ( BExp ) ] [BExp -> . true ] [BExp -> . false]
+		[BExp -> . AExp < AExp] [BExp -> .AExp > AExp] [BExp -> .AExp == AExp] [BExp -> . AExp != AExp]
+		[AExp -> . AExp + AExp] [AExp -> . AExp - AExp] [AExp -> . AExp * AExp] [AExp -> . ( AExp )] [AExp -> . x] [AExp -> . const]
+(while BExp) = [S -> while BExp . do Block end] 
+	       [BExp -> BExp . and BExp] [BExp -> BExp . or BExp]
+(while BExp and) = (assert BExp and )
+(while BExp or) = (assert BExp or)
+(while BExp do) = [S -> while BExp do . Block end]
+		  [Block -> . S Block ] [Block -> . S]
+		  [S -> . int x]  [S -> . x = AExp] [S -> . assert BExp ] [S -> . if BExp then Block end] 
+		  [S -> . if BEXP then Block else Block end] [S -> . while BExp do Block end]
+(while BExp do S) = (S)
+(while BExp do int) = (int)
+(while BExp do x) = (x)
+(while BExp do assert) = (assert)
+(while BExp do if) = (if)
+(while BExp do while) = (while)
+(while BExp do Block) = [S -> while BExp do Block . end]
+(while BExp do Block end ) = [S -> while BExp do Block end .]
+
+
+
+(while AExp) = (assert AExp)
+
+(while "(") = (assert "(" )
+(while not) = (assert not )
+(while true) = (assert true )
+(while false) = (assert false )
+(while x) = (assert x)
+(while const) = (assert const)
+
+
+-----------------------------------------------------------------------------------------------------------------
+
+			
