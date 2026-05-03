@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 
 
-# Action table cell values.
-# Reduce / Shift / Accept are clean cells; ShiftReduce / ReduceReduce are
-# unresolved conflicts. None means error / no action.
+# Action table values.
 @dataclass(frozen=True)
 class Shift:
     pass
@@ -19,7 +17,6 @@ class Accept:
 @dataclass(frozen=True)
 class Conflict:
     pass
-
 
 Action = Shift | Reduce | Accept | Conflict | None
 
@@ -56,13 +53,40 @@ GRAMMAR: list[tuple[str, list[str]]] = [
     ("BExp", ["true"]),
     ("BExp", ["false"]),
 ]
-TERMINALS: list[str] = ["eof","int", "x","const", "assert", "if", "then", "else", "while", "do", "end", "(", ")", "+","-","*","and","or","not","true","false", "<",">", "==", "=", "!="]
+# Map grammar-terminal -> TokenType enum name.
+TERMINAL_TO_TOKEN: dict[str, str] = {
+    "assert":  "ASSERT",
+    "if":      "IF",
+    "then":    "THEN",
+    "else":    "ELSE",
+    "while":   "WHILE",
+    "do":      "DO",
+    "end":     "END",
+    "int":     "INT",
+    "const":   "CONSTANT",
+    "true":    "TRUE",
+    "false":   "FALSE",
+    "x":       "IDENTIFIER",
+    "=":       "EQ",
+    "+":       "PLUS",
+    "-":       "MINUS",
+    "*":       "MUL",
+    "==":      "EQEQ",
+    "!=":      "NEQ",
+    "<":       "LT",
+    ">":       "GT",
+    "and":     "AND",
+    "or":      "OR",
+    "not":     "NOT",
+    "(":       "LPAREN",
+    ")":       "RPAREN",
+    "eof":     "END_OF_FILE",
+}
+
+TERMINALS: list[str] = list(TERMINAL_TO_TOKEN.keys())
 NONTERMINALS: list[str] = ["Program", "S", "Block", "AExp", "BExp"]
 
 # Operator precedence and associativity for shift-reduce conflict resolution.
-# Map: operator -> (level, assoc). Higher level = tighter binding.
-# Same level = same precedence (e.g. + and -). Operators not in the table
-# leave their conflicts unresolved.
 PRECEDENCE: dict[str, tuple[int, str]] = {
     "or":  (0, "left"),
     "and": (1, "left"),
@@ -72,13 +96,9 @@ PRECEDENCE: dict[str, tuple[int, str]] = {
     "*":   (4, "left"),
 }
 
-# Fallback for conflicts that FOLLOW filtering and PRECEDENCE can't resolve.
-# Map: state index -> { lookahead -> Action }. Only consulted when the other
-# mechanisms produce a Conflict.
+# Fallback for conflicts that need to be resolved manually
 CONFLIC_RESOLUTION: dict[int, dict[str, Action]] = {
-    # Add manual overrides here if a future grammar change introduces conflicts
-    # not covered by precedence rules. Example:
-    #   42: {"else": Shift(), "end": Reduce(7)},
+    # Example: 42: {"else": Shift(), "end": Reduce(7)},
 }
 
 
@@ -153,11 +173,7 @@ def closure(lr_set: set[tuple[int,int]]):
     #print(f"--> {lr_set}")
     return lr_set
 
-
-#TODO: Implement print conflicting cases
-
-def production_op(prod_idx: int) -> str | None:
-    """Rightmost terminal in the RHS of a production. None if no terminal in RHS."""
+def production_op(prod_idx: int):
     _, rhs = GRAMMAR[prod_idx]
     for sym in reversed(rhs):
         if sym in TERMINALS:
@@ -165,9 +181,7 @@ def production_op(prod_idx: int) -> str | None:
     return None
 
 
-def resolve_by_precedence(reduce_prod: int, lookahead: str) -> Action:
-    """Resolve a shift-reduce conflict using PRECEDENCE.
-    Returns Shift() / Reduce(p) / None (nonassoc error) / Conflict() (unresolvable)."""
+def resolve_by_precedence(reduce_prod: int, lookahead: str):
     op = production_op(reduce_prod)
     if op is None or op not in PRECEDENCE or lookahead not in PRECEDENCE:
         return Conflict()
@@ -189,8 +203,7 @@ def resolve_by_precedence(reduce_prod: int, lookahead: str) -> Action:
     return Conflict()
 
 
-def manual_resolution(lr_set_index: int, symbol: str) -> Action | None:
-    """Look up a manual resolution from CONFLIC_RESOLUTION for (state, lookahead)."""
+def manual_resolution(lr_set_index: int, symbol: str):
     return CONFLIC_RESOLUTION.get(lr_set_index, {}).get(symbol)
 
 
@@ -246,12 +259,14 @@ def gen_act_table():
     return table
 
 def gen_goto_table():
-    dim_x = len(NONTERMINALS+TERMINALS)
+    # Column layout: terminals first (TokenType ordinal order), then nonterminals.
+    columns = TERMINALS + NONTERMINALS
+    dim_x = len(columns)
     dim_y = len(lr_sets)
     table = [[None] * dim_x for _ in range(dim_y)]
-    for i,_ in enumerate(lr_sets):
-         for j,sym in enumerate(NONTERMINALS + TERMINALS):
-             table[i][j] = goto(i, sym)
+    for i in range(dim_y):
+        for j, sym in enumerate(columns):
+            table[i][j] = goto(i, sym)
     return table
 
 def encode_action(action: Action):
@@ -307,8 +322,6 @@ FOLLOW: dict[str, set[str]] = {}
 
 
 def compute_first():
-    """Populates FIRST[A] for every nonterminal A via fixed-point iteration.
-    Assumes no epsilon productions."""
     FIRST.clear()
     for nt in NONTERMINALS:
         FIRST[nt] = set()
@@ -330,8 +343,6 @@ def compute_first():
 
 
 def compute_lookahead():
-    """Populates FOLLOW[A] for every nonterminal A via fixed-point iteration.
-    Requires FIRST to be populated first. Assumes no epsilon productions."""
     FOLLOW.clear()
     for nt in NONTERMINALS:
         FOLLOW[nt] = set()
@@ -403,12 +414,58 @@ def main():
     
 
     action_table[:] = encode_act_table(action_table)
-
+    gen_cpp_file();
     # for a in action_table:
     #     print(a)
     # for r in expanded_goto_table:
     #     print(r)
     
+
+def gen_cpp_file():
+
+    with open("../src/parser/parsing_tables.h", "w") as f:
+        f.write("//AUTO GENERATED\n")
+        f.write("#include <vector>\n")
+
+        f.write("enum class Nonterminal { Program = 0, S, Block, AExp, BExp };\n\n")
+
+        f.write(f"constexpr int NUM_STATES = { len(lr_sets)};\n")
+        f.write(f"constexpr int NUM_TERMINALS = { len(TERMINALS)};\n")
+        f.write(f"constexpr int NUM_NONTERMINALS = { len(NONTERMINALS)};\n")
+        f.write(f"constexpr int NUM_PRODUCTIONS = { len(GRAMMAR)};\n\n")
+
+        f.write("// Action encoding: 0=error, 1=shift, 2=accept, -p=reduce by production p.\n")
+        f.write("inline const std::vector<std::vector<int>> ACTION_TABLE = {\n")
+        for row in action_table:
+            line = "{"
+            for item in row:
+                line += f"{item:3d}, "
+            line+="},\n"
+            f.write("   " + line)
+        f.write("};\n\n")
+
+        f.write("// value refers to index of next state, -1 corresponds to error state\n")
+        f.write("inline const std::vector<std::vector<int>> GOTO_TABLE = {\n")
+        for row in expanded_goto_table:
+            line = "{"
+            for item in row:
+                if not item is None:
+                    line += f"{item:3d}, "
+                else:
+                    line += f"{-1:3d}, "
+            line+="},\n"
+            f.write("   " + line)
+        f.write("};\n\n")
+
+        f.write("inline const std::vector<int> PRODUCTION_LENGTH = {\n")
+        for _,rhs in GRAMMAR:
+            f.write(f"{len(rhs)}, ")
+        f.write("\n};\n\n")
+
+        f.write("inline const std::vector<Nonterminal> PRODUCTION_LHS = {\n")
+        for lhs,_ in GRAMMAR:
+            f.write(f"Nonterminal::{lhs}, ")
+        f.write("\n};\n\n")
 
 if __name__ == "__main__":
     main()
