@@ -22,6 +22,10 @@ inline const char* tokenTypeToString(TokenType t) {
     }
 }
 
+inline void dumpIndent(std::ostream& os, int indent) {
+    for (int i = 0; i < indent; ++i) os << "  ";
+}
+
 class Node {
 public:
     virtual ~Node() = default;
@@ -34,6 +38,7 @@ public:
     Node& operator=(Node&&) = default;
 
     virtual void print(std::ostream& os) const = 0;
+    virtual void dump(std::ostream& os, int indent = 0) const = 0;
 };
 
 class Statement : public Node {
@@ -49,6 +54,11 @@ public:
     void print(std::ostream& os) const override {
         for (const auto& s : statements)
             s->print(os);
+    }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "StatementBlock\n";
+        for (const auto& s : statements)
+            s->dump(os, indent + 1);
     }
 };
 
@@ -67,6 +77,9 @@ public:
     void print(std::ostream& os) const override {
         os << name;
     }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "Var: " << name << "\n";
+    }
 };
 
 class IntLiteralExpression : public ArithmeticExpression {
@@ -78,6 +91,9 @@ public:
     void print(std::ostream& os) const override {
         os << value;
     }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "Int: " << value << "\n";
+    }
 };
 
 class BoolLiteralExpression : public BooleanExpression {
@@ -88,6 +104,9 @@ public:
 
     void print(std::ostream& os) const override {
         os << (value ? "true" : "false");
+    }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "Bool: " << (value ? "true" : "false") << "\n";
     }
 };
 
@@ -109,6 +128,11 @@ public:
         os << tokenTypeToString(operation);
         rightExpression->print(os);
     }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "BinaryArith: " << tokenTypeToString(operation) << "\n";
+        leftExpression->dump(os, indent + 1);
+        rightExpression->dump(os, indent + 1);
+    }
 };
 
 class UnaryBooleanExpression : public BooleanExpression {
@@ -121,6 +145,10 @@ public:
     void print(std::ostream& os) const override {
         os << "not ";
         operand->print(os);
+    }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "UnaryBool: not\n";
+        operand->dump(os, indent + 1);
     }
 };
 
@@ -142,6 +170,11 @@ public:
         os << tokenTypeToString(operation);
         rightExpression->print(os);
     }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "BinaryBool: " << tokenTypeToString(operation) << "\n";
+        leftExpression->dump(os, indent + 1);
+        rightExpression->dump(os, indent + 1);
+    }
 };
 
 class BinaryRelationalExpression : public BooleanExpression {
@@ -162,6 +195,11 @@ public:
         os << tokenTypeToString(operation);
         rightExpression->print(os);
     }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "BinaryRelational: " << tokenTypeToString(operation) << "\n";
+        leftExpression->dump(os, indent + 1);
+        rightExpression->dump(os, indent + 1);
+    }
 };
 
 class DeclarationStatement : public Statement {
@@ -172,6 +210,9 @@ public:
 
     void print(std::ostream& os) const override {
         os << "int " << name << std::endl;
+    }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "Decl: " << name << "\n";
     }
 };
 
@@ -184,6 +225,10 @@ public:
         assertion->print(os);
         os << std::endl;
     }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "Assert\n";
+        assertion->dump(os, indent + 1);
+    }
 };
 
 class AssignStatement : public Statement {
@@ -195,6 +240,10 @@ public:
         os << target << " = ";
         expression->print(os);
         os << std::endl;
+    }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "Assign: " << target << "\n";
+        expression->dump(os, indent + 1);
     }
 };
 
@@ -215,6 +264,17 @@ public:
         }
         os << std::endl;
     }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "If\n";
+        dumpIndent(os, indent + 1); os << "guard:\n";
+        guard->dump(os, indent + 2);
+        dumpIndent(os, indent + 1); os << "then:\n";
+        thenStatement->dump(os, indent + 2);
+        if (elseStatement.has_value()) {
+            dumpIndent(os, indent + 1); os << "else:\n";
+            (*elseStatement)->dump(os, indent + 2);
+        }
+    }
 };
 
 class WhileStatement : public Statement {
@@ -228,5 +288,12 @@ public:
         os << " do ";
         bodyStatement->print(os);
         os << std::endl;
+    }
+    void dump(std::ostream& os, int indent = 0) const override {
+        dumpIndent(os, indent); os << "While\n";
+        dumpIndent(os, indent + 1); os << "guard:\n";
+        guard->dump(os, indent + 2);
+        dumpIndent(os, indent + 1); os << "body:\n";
+        bodyStatement->dump(os, indent + 2);
     }
 };
