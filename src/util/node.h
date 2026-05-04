@@ -46,7 +46,10 @@ class StatementBlock : public Statement {
 public:
     std::vector<std::unique_ptr<Statement>> statements;
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os) const override {
+        for (const auto& s : statements)
+            s->print(os);
+    }
 };
 
 class ArithmeticExpression : public Expression {
@@ -108,6 +111,19 @@ public:
     }
 };
 
+class UnaryBooleanExpression : public BooleanExpression {
+public:
+    std::unique_ptr<BooleanExpression> operand;
+
+    explicit UnaryBooleanExpression(std::unique_ptr<BooleanExpression> operand)
+        : operand(std::move(operand)) {}
+
+    void print(std::ostream& os) const override {
+        os << "not ";
+        operand->print(os);
+    }
+};
+
 class BinaryBooleanExpression : public BooleanExpression {
 public:
     TokenType operation;
@@ -145,6 +161,17 @@ public:
         leftExpression->print(os);
         os << tokenTypeToString(operation);
         rightExpression->print(os);
+    }
+};
+
+class DeclarationStatement : public Statement {
+public:
+    std::string name;
+
+    explicit DeclarationStatement(std::string name) : name(std::move(name)) {}
+
+    void print(std::ostream& os) const override {
+        os << "int " << name << std::endl;
     }
 };
 
