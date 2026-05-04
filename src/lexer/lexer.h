@@ -30,7 +30,7 @@ class Lexer {
         }
 
         if(curr == file.end()){
-            std::cout << "END_OF_FILE" << std::endl;
+            //std::cout << "END_OF_FILE" << std::endl;
             return Token{TokenType::END_OF_FILE, {}, ""};
         }
 
