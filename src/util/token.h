@@ -57,9 +57,9 @@ END_OF_FILE,
 
 // We will use a variant to hold the different value types of tokens:
 // More flexible in the lexer. In the parser we construct corresponding (typed) AST nodes
-using TokenValue = std::variant<std::monostate, int, bool, std::string_view>;
+using TokenValue = std::variant<std::monostate, int, bool, std::string>;
 struct Token {
     TokenType type;
     TokenValue value;
-    std::string_view lexeme;
+    std::string lexeme;
 };
