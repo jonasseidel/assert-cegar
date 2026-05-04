@@ -85,9 +85,21 @@ static void test_assign_ast() {
 
 // ============================================================
 
+static void visualize_AST(const std::string source){
+
+    auto tokens = Lexer(source).tokenize();
+    Parser parser(tokens);
+    auto ast = parser.parse();
+    if(ast){
+        ast->get()->dump(std::cout);
+    }
+}
+
 int main() {
     test_assign();
     test_assign_ast();
+
+    //visualize_AST("assert x==5 y=2 if x==5 then x= (1+x)*y y= 1 else int z z=5 end while true do x = 1 end");
 
     if (failures == 0)
         std::cout << "All tests passed.\n";
