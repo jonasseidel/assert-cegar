@@ -3,7 +3,6 @@
 #include <optional>
 #include <iostream>
 #include "../util/token.h"
-#include "../util/ast.h"
 #include "parsing_tables.h"
 #include "../util/node.h"
 #include <cassert>
