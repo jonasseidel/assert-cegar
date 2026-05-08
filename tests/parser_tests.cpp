@@ -4,6 +4,7 @@
 #include <cassert>
 #include "../src/lexer/lexer.h"
 #include "../src/parser/parser.h"
+#include "../src/util/ast_printer.h"
 
 static int failures = 0;
 
@@ -91,7 +92,8 @@ static void visualize_AST(const std::string source){
     Parser parser(tokens);
     auto ast = parser.parse();
     if(ast){
-        ast->get()->dump(std::cout);
+        ASTPrinter printer(std::cout);
+        ast->get()->accept(printer);
     }
 }
 

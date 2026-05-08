@@ -4,6 +4,8 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 
+#include "util/ast_printer.h"
+
 
 std::string fileToString(const std::string& filename) {
     std::ifstream file(filename);
@@ -31,7 +33,11 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         std::cout << "Parsed AST:\n";
-        ast->get()->dump(std::cout);
+
+        ASTPrinter printer(std::cout);
+        ast->get()->accept(printer);
+
+        
     } else {
         std::cout << "Missing input file as argument." << std::endl;
     }
