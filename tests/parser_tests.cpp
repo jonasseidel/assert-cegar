@@ -71,8 +71,8 @@ static void test_assign_ast() {
         ++failures; return;
     }
     auto* binExpr = dynamic_cast<BinaryArithmeticExpression*>(assign->expression.get());
-    if (!binExpr || binExpr->operation != TokenType::PLUS) {
-        std::cerr << "  FAIL [" << testName << "]: expected BinaryArithmeticExpression(PLUS)\n";
+    if (!binExpr || binExpr->operation != ArithOp::ADD) {
+        std::cerr << "  FAIL [" << testName << "]: expected BinaryArithmeticExpression(ADD)\n";
         ++failures; return;
     }
     auto* left  = dynamic_cast<IntLiteralExpression*>(binExpr->leftExpression.get());

@@ -5,6 +5,7 @@
 #include "../util/token.h"
 #include "parsing_tables.h"
 #include "../util/node.h"
+#include "../util/operations.h"
 #include <cassert>
 class Parser{
 public:
@@ -193,7 +194,7 @@ public:
         case 9:  // AExp := AExp + AExp
         case 10: // AExp := AExp * AExp
         case 11: { // AExp := AExp - AExp
-            static const TokenType ops[] = { TokenType::PLUS, TokenType::MUL, TokenType::MINUS };
+            static const ArithOp ops[] = { ArithOp::ADD, ArithOp::MUL, ArithOp::SUB };
             return std::make_unique<BinaryArithmeticExpression>(
                 ops[production_rule_index - 9],
                 cast<ArithmeticExpression>(std::move(children[0])),
@@ -208,7 +209,7 @@ public:
 
         case 15: // BExp := BExp and BExp
         case 16: { // BExp := BExp or BExp
-            static const TokenType ops[] = { TokenType::AND, TokenType::OR };
+            static const BoolOp ops[] = { BoolOp::AND, BoolOp::OR };
             return std::make_unique<BinaryBooleanExpression>(
                 ops[production_rule_index - 15],
                 cast<BooleanExpression>(std::move(children[0])),
@@ -216,6 +217,7 @@ public:
         }
         case 17: { // BExp := not BExp
             return std::make_unique<UnaryBooleanExpression>(
+                UnaryBoolOp::NOT,
                 cast<BooleanExpression>(std::move(children[1])));
         }
         case 18: // BExp := ( BExp )
@@ -225,7 +227,7 @@ public:
         case 20: // BExp := AExp > AExp
         case 21: // BExp :=AExp == AExp
         case 22: { //BExp := AExp != AExp
-            static const TokenType ops[] = { TokenType::LT, TokenType::GT, TokenType::EQEQ, TokenType::NEQ };
+            static const RelOp ops[] = { RelOp::LT, RelOp::GT, RelOp::EQ, RelOp::NEQ };
             return std::make_unique<BinaryRelationalExpression>(
                 ops[production_rule_index - 19],
                 cast<ArithmeticExpression>(std::move(children[0])),

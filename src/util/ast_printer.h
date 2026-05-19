@@ -34,7 +34,7 @@ public:
     };
     void visit(BinaryArithmeticExpression& node) override{
         dumpIndent(os, indent); 
-        os << "BinaryArith: " << tokenTypeToString(node.operation) << "\n";
+        os << "BinaryArith: " << toString(node.operation) << "\n";
         ++indent;
         node.leftExpression->accept(*this);
         node.rightExpression->accept(*this);
@@ -42,14 +42,14 @@ public:
     };
     void visit(UnaryBooleanExpression& node) override{
         dumpIndent(os, indent); 
-        os << "UnaryBool: not\n";
+        os << "UnaryBool: " << toString(node.operation) << "\n";
         ++indent;
         node.operand->accept(*this);
         --indent;
     };
     void visit(BinaryBooleanExpression& node) override{
         dumpIndent(os, indent); 
-        os << "BinaryBool: " << tokenTypeToString(node.operation) << "\n";
+        os << "BinaryBool: " << toString(node.operation) << "\n";
         ++indent;
         node.leftExpression->accept(*this);
         node.rightExpression->accept(*this);
@@ -57,7 +57,7 @@ public:
     };
     void visit(BinaryRelationalExpression& node) override{
         dumpIndent(os, indent); 
-        os << "BinaryRel: " << tokenTypeToString(node.operation) << "\n";
+        os << "BinaryRel: " << toString(node.operation) << "\n";
         ++indent;
         node.leftExpression->accept(*this);
         node.rightExpression->accept(*this);

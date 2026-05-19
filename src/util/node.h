@@ -4,24 +4,27 @@
 #include <optional>
 #include <ostream>
 #include <string>
-#include "token.h"
+
+//#include "token.h"
+#include "operations.h"
+
 #include "ast_visitor.h"
 
-inline const char* tokenTypeToString(TokenType t) {
-    switch (t) {
-        case TokenType::PLUS:  return "+";
-        case TokenType::MINUS: return "-";
-        case TokenType::MUL:   return "*";
-        case TokenType::EQEQ:  return "==";
-        case TokenType::NEQ:   return "!=";
-        case TokenType::LT:    return "<";
-        case TokenType::GT:    return ">";
-        case TokenType::AND:   return "and";
-        case TokenType::OR:    return "or";
-        case TokenType::NOT:   return "not";
-        default:               return "?";
-    }
-}
+// inline const char* tokenTypeToString(TokenType t) {
+//     switch (t) {
+//         case TokenType::PLUS:  return "+";
+//         case TokenType::MINUS: return "-";
+//         case TokenType::MUL:   return "*";
+//         case TokenType::EQEQ:  return "==";
+//         case TokenType::NEQ:   return "!=";
+//         case TokenType::LT:    return "<";
+//         case TokenType::GT:    return ">";
+//         case TokenType::AND:   return "and";
+//         case TokenType::OR:    return "or";
+//         case TokenType::NOT:   return "not";
+//         default:               return "?";
+//     }
+// }
 
 inline void dumpIndent(std::ostream& os, int indent) {
     for (int i = 0; i < indent; ++i) os << "  ";
@@ -111,11 +114,11 @@ public:
 
 class BinaryArithmeticExpression : public ArithmeticExpression {
 public:
-    TokenType operation;
+    ArithOp operation;
     std::unique_ptr<ArithmeticExpression> leftExpression;
     std::unique_ptr<ArithmeticExpression> rightExpression;
 
-    BinaryArithmeticExpression(TokenType operation,
+    BinaryArithmeticExpression(ArithOp operation,
         std::unique_ptr<ArithmeticExpression> leftExpression,
         std::unique_ptr<ArithmeticExpression> rightExpression)
         : operation(operation),
@@ -126,7 +129,7 @@ public:
 
     void print(std::ostream& os) const override {
         leftExpression->print(os);
-        os << tokenTypeToString(operation);
+        os << toString(operation);
         rightExpression->print(os);
     }
 
@@ -134,15 +137,16 @@ public:
 
 class UnaryBooleanExpression : public BooleanExpression {
 public:
+    UnaryBoolOp operation;
     std::unique_ptr<BooleanExpression> operand;
 
-    explicit UnaryBooleanExpression(std::unique_ptr<BooleanExpression> operand)
-        : operand(std::move(operand)) {}
+    explicit UnaryBooleanExpression(UnaryBoolOp operation, std::unique_ptr<BooleanExpression> operand)
+        : operation(operation), operand(std::move(operand)) {}
 
     void accept(ASTVisitor& v) override { v.visit(*this); }
 
     void print(std::ostream& os) const override {
-        os << "not ";
+        os << toString(operation);
         operand->print(os);
     }
 
@@ -150,11 +154,11 @@ public:
 
 class BinaryBooleanExpression : public BooleanExpression {
 public:
-    TokenType operation;
+    BoolOp operation;
     std::unique_ptr<BooleanExpression> leftExpression;
     std::unique_ptr<BooleanExpression> rightExpression;
 
-    BinaryBooleanExpression(TokenType operation,
+    BinaryBooleanExpression(BoolOp operation,
         std::unique_ptr<BooleanExpression> leftExpression,
         std::unique_ptr<BooleanExpression> rightExpression)
         : operation(operation),
@@ -165,7 +169,7 @@ public:
 
     void print(std::ostream& os) const override {
         leftExpression->print(os);
-        os << tokenTypeToString(operation);
+        os << toString(operation);
         rightExpression->print(os);
     }
 
@@ -173,11 +177,11 @@ public:
 
 class BinaryRelationalExpression : public BooleanExpression {
 public:
-    TokenType operation;
+    RelOp operation;
     std::unique_ptr<ArithmeticExpression> leftExpression;
     std::unique_ptr<ArithmeticExpression> rightExpression;
 
-    BinaryRelationalExpression(TokenType operation,
+    BinaryRelationalExpression(RelOp operation,
         std::unique_ptr<ArithmeticExpression> leftExpression,
         std::unique_ptr<ArithmeticExpression> rightExpression)
         : operation(operation),
@@ -188,7 +192,7 @@ public:
 
     void print(std::ostream& os) const override {
         leftExpression->print(os);
-        os << tokenTypeToString(operation);
+        os << toString(operation);
         rightExpression->print(os);
     }
 
