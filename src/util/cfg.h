@@ -9,6 +9,11 @@
 
 class Instruction;
 
+class CFG {
+public:
+    std::vector<Block> blocks;
+};
+
 class Block {
 public:
     std::vector<std::unique_ptr<Instruction>> instructions;
@@ -49,20 +54,24 @@ public:
     std::unique_ptr<Operand> operand;
 };
 
+class AssignInstr : public Instruction {
+public:
+    std::string dest;
+    std::unique_ptr<Operand> src;
+};
+
+
 class TerminatorInstr : public Instruction {
 };
 
 class ConditionalTerminatorInstr : public TerminatorInstr {
 public:
     std::unique_ptr<Operand> guard;
-    std::unique_ptr<Block> trueTarget;
-    std::unique_ptr<Block> falseTarget;
+    int trueTarget;
+    int falseTarget;
 };
 
-// class Edge {
-// public:
-//     std::unique_ptr<Block> target;
-//     std::unique_ptr<Block> source;
-//     // How to implement the guard? not simply whole expression. How is it in lLVM ? just a GT call with two operands?
-//     std::unique_ptr<Instruction> guard;
-// };
+class UnconditionalTerminatorInstr : public TerminatorInstr {
+public:
+    int target;
+};
