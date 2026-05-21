@@ -9,61 +9,11 @@
 #include <cassert>
 class Parser{
 public:
-    enum class Status { CONTINUE, ACCEPT, ERROR };
-
-private:
-
-std::vector<Token> tokens;
-std::vector<Token>::iterator curr;
-
-std::vector<int> itemStack;
-std::vector<int> reversed_rightmost_derivation;
-
-std::string log;
-//Add syntax tree field
-std::vector<std::unique_ptr<Node>> nodeStack; 
-
-
-// TODO members for action, goto table for parsing algorithm. EIther
-// we will do LL or LR parsing.
-
-    void logEvent(const std::string& msg) {
-        log.append(msg);
-        log.append("  stack=[");
-        for (size_t i = 0; i < itemStack.size(); ++i) {
-            if (i) log.append(",");
-            log.append(std::to_string(itemStack[i]));
-        }
-        log.append("]\n");
-    }
-
-public:
-    void dumpLog() const { std::cerr << log; }
 
     explicit Parser(const std::vector<Token>& t) : tokens(t), curr(tokens.begin()) {
         itemStack.push_back(0);
         logEvent("Constructed parser");
     };
-
-    Status step(){
-        int action_encoding = ACTION_TABLE[itemStack.back()][static_cast<int>(curr->type)];
-        switch (action_encoding)
-        {
-        case 1:
-            shift();
-            return Status::CONTINUE;
-        case 2:
-            accept();
-            return Status::ACCEPT;
-        case 0:
-            error();
-            return Status::ERROR;
-        default:
-            assert(action_encoding < 0); // ValueError: any entries > 2 do not correspond to any action in our encoding currently.
-            reduce(-action_encoding);
-            return Status::CONTINUE;
-        }
-    }
 
     std::optional<std::unique_ptr<Node>> parse(){
         while (true) {
@@ -77,6 +27,52 @@ public:
         return reversed_rightmost_derivation;
     }
 
+    void dumpLog() const { std::cerr << log; }
+
+private:
+
+    enum class Status { CONTINUE, ACCEPT, ERROR };
+
+    std::vector<Token> tokens;
+    std::vector<Token>::iterator curr;
+
+    std::vector<int> itemStack;
+    std::vector<int> reversed_rightmost_derivation;
+
+    std::string log;
+    std::vector<std::unique_ptr<Node>> nodeStack; 
+
+
+    void logEvent(const std::string& msg) {
+        log.append(msg);
+        log.append("  stack=[");
+        for (size_t i = 0; i < itemStack.size(); ++i) {
+            if (i) log.append(",");
+            log.append(std::to_string(itemStack[i]));
+        }
+        log.append("]\n");
+    }
+
+    Status step(){
+        int action_encoding = ACTION_TABLE[itemStack.back()][static_cast<int>(curr->type)];
+        switch (action_encoding)
+        {
+        case 1:
+            shift();
+            return Status::CONTINUE;
+        case 2:
+            return Status::ACCEPT;
+        case 0:
+            error();
+            return Status::ERROR;
+        default:
+            assert(action_encoding < 0 && "Invalid action encoding in ACTION_TABLE.");
+            reduce(-action_encoding);
+            return Status::CONTINUE;
+        }
+    }
+
+
     void shift(){
         Token token = *curr;
         curr++;
@@ -85,10 +81,6 @@ public:
         logEvent("Shifted token type " + std::to_string(static_cast<int>(token.type)));
         // Push AST Children to stack
         nodeStack.push_back(construct_AST_child(token));
-    }
-
-    void accept(){
-        
     }
 
     void reduce(int production_rule_index){
@@ -134,9 +126,9 @@ public:
 
     template<typename T>
     std::unique_ptr<T> cast(std::unique_ptr<Node> node) {
-        assert(node != nullptr);
+        assert(node != nullptr && "AST cast failed due to null pointer.");
         T* ptr = dynamic_cast<T*>(node.release());
-        assert(ptr != nullptr && "AST cast failed — wrong node type for production");
+        assert(ptr != nullptr && "AST cast failed due to unexpected node type.");
         return std::unique_ptr<T>(ptr);
     }
 
