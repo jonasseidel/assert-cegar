@@ -9,18 +9,20 @@
 
 class Instruction;
 
-class CFG {
-public:
-    std::vector<Block> blocks;
-};
-
 class Block {
 public:
     std::vector<std::unique_ptr<Instruction>> instructions;
 };
 
+class CFG {
+public:
+    std::vector<Block> blocks;
+};
+
 
 class Operand {
+public:
+    virtual ~Operand() = default;
 };
 class VariableOperand : public Operand {
 public:
@@ -38,6 +40,8 @@ public:
 
 
 class Instruction {
+public:
+    virtual ~Instruction() = default;
 };
 
 class BinOpInstr : public Instruction {
