@@ -1,0 +1,15 @@
+x=5
+y=5
+if x == y and not (x * y == x) then
+
+x = x * (y+1)
+
+y = x-1
+
+else
+
+x=0 y=0
+
+end
+
+result = x * y

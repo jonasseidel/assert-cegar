@@ -5,7 +5,8 @@
 #include "parser/parser.h"
 
 #include "util/ast_printer.h"
-
+#include "util/cfg_builder.h"
+#include "util/cfg_printer.h"
 
 std::string fileToString(const std::string& filename) {
     std::ifstream file(filename);
@@ -36,6 +37,11 @@ int main(int argc, char* argv[]) {
 
         ASTPrinter printer(std::cout);
         ast->get()->accept(printer);
+
+        std::cout << "\nCFG:\n";
+        CFGBuilder builder;
+        CFG cfg = builder.build(*dynamic_cast<StatementBlock*>(ast->get()));
+        printCFG(cfg, std::cout);
 
         
     } else {
