@@ -8,6 +8,8 @@ class CFGBuilder : public ASTVisitor {
     std::vector<std::string> variableNames;
     int tempVarCounter = 0;
     std::string currentResultVar;
+    std::unique_ptr<Operand> currentOperand;
+
 
     std::vector<std::unique_ptr<Instruction>> pendingInstructions;
 
@@ -19,12 +21,13 @@ class CFGBuilder : public ASTVisitor {
     void visit(AssignStatement& node) override{
         auto instr = std::make_unique<AssignInstr>();
         instr->dest = node.target;
-        auto operand = std::make_unique<VariableOperand>();
 
         node.expression->accept(*this);
 
-        operand->name = currentResultVar;
-        instr->src = std::move(operand);
+        // auto operand = std::make_unique<VariableOperand>();
+        // operand->name = currentResultVar;
+
+        instr->src = std::move(currentOperand);
 
         pendingInstructions.push_back(std::move(instr));
     };
@@ -34,23 +37,40 @@ class CFGBuilder : public ASTVisitor {
 
         auto instr = std::make_unique<BinOpInstr>();
         
-        auto operand1 = std::make_unique<VariableOperand>();
+        
         node.leftExpression->accept(*this);
-        operand1->name = currentResultVar; //"t" + std::to_string(tempVarCounter);
+        // auto operand1 = std::make_unique<VariableOperand>();
+        // operand1->name = currentResultVar; //"t" + std::to_string(tempVarCounter);
+        instr->lhs = std::move(currentOperand);
 
-        auto operand2 = std::make_unique<VariableOperand>();
+        // auto operand2 = std::make_unique<VariableOperand>();
+        // operand2->name = currentResultVar; // "t" + std::to_string(tempVarCounter++);
+
         node.rightExpression->accept(*this);
-        operand2->name = currentResultVar; // "t" + std::to_string(tempVarCounter++);
+        instr->rhs = std::move(currentOperand);
 
-        instr->lhs = std::move(operand1);
-        instr->rhs = std::move(operand2);
         instr->dest = "t" + std::to_string(tempVarCounter++);
         instr->op = node.operation;
 
-        currentResultVar = instr->dest;
+        auto operand = std::make_unique<VariableOperand>();
+        operand->name = instr->dest;
+        currentOperand = std::move(operand);
+
+        // currentResultVar = instr->dest;
 
         pendingInstructions.push_back(std::move(instr));
     };
 
+    void visit(VariableExpression& node) override{
+        auto operand = std::make_unique<VariableOperand>();
+        operand->name = node.name;
+        currentOperand = std::move(operand);
+    };
+
+    void visit(IntLiteralExpression& node) override{
+        auto operand = std::make_unique<ConstantIntOperand>();
+        operand->value = node.value;
+        currentOperand = std::move(operand);
+    };
     // All remaining cases TODO
 };
