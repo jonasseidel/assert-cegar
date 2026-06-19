@@ -82,8 +82,50 @@ static void test_if_else() {
     std::cout << "PASS cfg_if_else\n";
 }
 
+static void test_while() {
+    CFG cfg = buildFrom("x=10 while x>0 do x=x-1 end");
+    printCFG(cfg, std::cout);
+
+    // Block 0: pre-block (x=10, goto header)
+    // Block 1: header (t0 = x > 0, if t0 goto 2 else 3)
+    // Block 2: body (t1 = x - 1, x = t1, goto 1)  -- back-edge to header
+    // Block 3: exit (empty)
+    assert(cfg.blocks.size() == 4);
+
+    auto& b0 = cfg.blocks[0].instructions;
+    assert(b0.size() == 2);
+    auto* i0 = dynamic_cast<AssignInstr*>(b0[0].get());
+    assert(i0 && i0->dest == "x");
+    assert(dynamic_cast<ConstantIntOperand*>(i0->src.get())->value == 10);
+    auto* pre = dynamic_cast<UnconditionalTerminatorInstr*>(b0[1].get());
+    assert(pre && pre->target == 1);
+
+    auto& b1 = cfg.blocks[1].instructions;
+    assert(b1.size() == 2);
+    auto* g = dynamic_cast<BinOpInstr*>(b1[0].get());
+    assert(g && std::get<RelOp>(g->op) == RelOp::GT);
+    assert(dynamic_cast<VariableOperand*>(g->lhs.get())->name == "x");
+    assert(dynamic_cast<ConstantIntOperand*>(g->rhs.get())->value == 0);
+    auto* cond = dynamic_cast<ConditionalTerminatorInstr*>(b1[1].get());
+    assert(cond && cond->trueTarget == 2 && cond->falseTarget == 3);
+
+    auto& b2 = cfg.blocks[2].instructions;
+    assert(b2.size() == 3);
+    auto* d = dynamic_cast<BinOpInstr*>(b2[0].get());
+    assert(d && std::get<ArithOp>(d->op) == ArithOp::SUB);
+    auto* a = dynamic_cast<AssignInstr*>(b2[1].get());
+    assert(a && a->dest == "x");
+    auto* back = dynamic_cast<UnconditionalTerminatorInstr*>(b2[2].get());
+    assert(back && back->target == 1);  // back-edge to header
+
+    assert(cfg.blocks[3].instructions.empty());
+
+    std::cout << "PASS cfg_while\n";
+}
+
 int main() {
     test_straight_line();
     test_if_else();
+    test_while();
     std::cout << "All tests passed.\n";
 }

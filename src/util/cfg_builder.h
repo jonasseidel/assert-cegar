@@ -169,6 +169,38 @@ class CFGBuilder : public ASTVisitor {
         condTerm->falseTarget = node.elseStatement.has_value() ? elseBlockIdx : mergeIdx;
     };
 
+    void visit(WhileStatement& node) override{
+        // Seal any preceding straight-line code into its own block that falls
+        // through to the header. The header must be a separate block because it
+        // is the back-edge target and gets re-entered on every iteration; we
+        // must not re-execute the preceding code.
+        int headerBlockIdx = cfg.blocks.size() + 1;
+        auto preTerminator = std::make_unique<UnconditionalTerminatorInstr>();
+        preTerminator->target = headerBlockIdx;
+        pendingInstructions.push_back(std::move(preTerminator));
+        finishBlock();
+
+        // Header block: evaluate the guard (straight-line), then branch to the
+        // body on true or the exit on false.
+        node.guard->accept(*this);
+        auto* condTerm = new ConditionalTerminatorInstr();
+        condTerm->guard = std::move(currentOperand);
+        pendingInstructions.push_back(std::unique_ptr<Instruction>(condTerm));
+        finishBlock();
+
+        // Body block(s); the last one back-edges to the header.
+        int bodyBlockIdx = cfg.blocks.size();
+        node.bodyStatement->accept(*this);
+        auto bodyTerminator = std::make_unique<UnconditionalTerminatorInstr>();
+        bodyTerminator->target = headerBlockIdx;
+        cfg.blocks[bodyBlockIdx].instructions.push_back(std::move(bodyTerminator));
+
+        // Exit is the next block to be created (backpatched, as for `if`).
+        int exitIdx = cfg.blocks.size();
+        condTerm->trueTarget = bodyBlockIdx;
+        condTerm->falseTarget = exitIdx;
+    };
+
     void finishBlock() {
         Block block;
         block.instructions = std::move(pendingInstructions);
@@ -185,5 +217,5 @@ public:
 private:
     void visit(DeclarationStatement& node) override{};
     void visit(AssertionStatement& node) override{};
-    void visit(WhileStatement& node) override{};
+    
 };
